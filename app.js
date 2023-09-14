@@ -5,7 +5,8 @@ const app = express();
 const bodyParser = require("body-parser")
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-const md5 = require('md5');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 
 app.set("view engine", "ejs")
@@ -45,13 +46,14 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
     const newUsername = req.body.username;
     const newPassword = req.body.password;
+    const hashedPass = bcrypt.hashSync(newPassword, saltRounds);
 
     User.findOne({ username: newUsername })
         .then((foundUser) => {
             if (!foundUser) {
                 const newUser = new User({
                     username: newUsername,
-                    password: md5(newPassword)
+                    password: hashedPass
                 })
                 newUser.save()
                 res.render("secrets")
@@ -70,12 +72,13 @@ app.get("/login", (req, res) => {
 
 app.post("/login" , (req , res)=>{
     const userName = req.body.username;
-    const userPass = md5(req.body.password);
+    const userPass = req.body.password;
     User.findOne({username : userName})
         .then((foundUser)=>{
             if(foundUser)
             {
-                if(foundUser.password === userPass)
+
+                if(bcrypt.compareSync(userPass, foundUser.password))
                 {
                     res.render("secrets")
                 }
